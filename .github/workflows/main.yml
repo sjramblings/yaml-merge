@@ -85,18 +85,15 @@ jobs:
 
       - name: Generate changelog
         id: changelog
-        uses: conventional-changelog/conventional-changelog-action@v4
-        with:
-          config-file-path: .github/changelog-config.json
-          release-count: 0
-          version-file: ./version.json
-          version: ${{ github.ref_name }}
+        uses: mikepenz/release-changelog-builder-action@v4
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
           name: Release ${{ github.ref_name }}
-          body: ${{ steps.changelog.outputs.clean_changelog }}
+          body: ${{ steps.changelog.outputs.changelog }}
           draft: false
           prerelease: false
           files: |
