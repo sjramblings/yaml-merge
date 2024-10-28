@@ -29,12 +29,20 @@ func MergeYAMLFiles(file1, file2, key string, pw progress.Writer) ([]byte, error
 		pw.Error("Failed to read %s", file1)
 		return nil, fmt.Errorf("error reading file1: %w", err)
 	}
+	if len(data1) == 0 {
+		pw.Error("File is empty: %s", file1)
+		return nil, fmt.Errorf("error parsing file1: file is empty or invalid")
+	}
 	pw.Success("Read %s (%d bytes)", file1, len(data1))
 
 	data2, err := os.ReadFile(file2)
 	if err != nil {
 		pw.Error("Failed to read %s", file2)
 		return nil, fmt.Errorf("error reading file2: %w", err)
+	}
+	if len(data2) == 0 {
+		pw.Error("File is empty: %s", file2)
+		return nil, fmt.Errorf("error parsing file2: file is empty or invalid")
 	}
 	pw.Success("Read %s (%d bytes)", file2, len(data2))
 

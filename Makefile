@@ -80,12 +80,19 @@ bump-minor: ## Bump minor version (0.x.0)
 
 bump-patch: ## Bump patch version (0.0.x)
 	@echo "Bumping patch version..."
-	$(eval CURRENT_VERSION=$(shell git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0"))
-	$(eval MAJOR_MINOR_VERSION=$(shell echo $(CURRENT_VERSION) | cut -d. -f1,2))
-	$(eval PATCH_VERSION=$(shell echo $(CURRENT_VERSION) | cut -d. -f3))
-	$(eval NEW_VERSION="$(MAJOR_MINOR_VERSION).$$(($(PATCH_VERSION)+1))")
-	@echo "New version: $(NEW_VERSION)"
-	@echo "$(NEW_VERSION)" > .version
+	@if [ -z "$$(git tag)" ]; then \
+		echo "v0.0.1" > .version; \
+	else \
+		CURRENT_VERSION=$$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0"); \
+		MAJOR=$$(echo $$CURRENT_VERSION | cut -d. -f1); \
+		MINOR=$$(echo $$CURRENT_VERSION | cut -d. -f2); \
+		PATCH=$$(echo $$CURRENT_VERSION | cut -d. -f3); \
+		NEW_PATCH=$$((PATCH + 1)); \
+		NEW_VERSION="$$MAJOR.$$MINOR.$$NEW_PATCH"; \
+		echo "$$NEW_VERSION" > .version; \
+	fi
+	@NEW_VERSION=$$(cat .version); \
+	echo "New version: $$NEW_VERSION"
 
 release-major: bump-major ## Create and push major version tag
 	git tag -a $(shell cat .version) -m "Release $(shell cat .version)"
@@ -96,8 +103,9 @@ release-minor: bump-minor ## Create and push minor version tag
 	git push origin $(shell cat .version)
 
 release-patch: bump-patch ## Create and push patch version tag
-	git tag -a $(shell cat .version) -m "Release $(shell cat .version)"
-	git push origin $(shell cat .version)
+	@NEW_VERSION=$$(cat .version); \
+	git tag -a "$$NEW_VERSION" -m "Release $$NEW_VERSION"; \
+	git push origin "$$NEW_VERSION"
 
 # Development helpers
 fmt: ## Format code

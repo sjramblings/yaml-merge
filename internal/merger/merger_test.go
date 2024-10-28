@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
 )
 
@@ -19,11 +20,9 @@ func (m mockProgress) Error(format string, a ...interface{})   {}
 func (m mockProgress) End()                                    {}
 
 func TestMergeYAMLFiles(t *testing.T) {
-	// Create temporary directory for test files
+	// Set up temporary directory
 	tmpDir, err := os.MkdirTemp("", "yaml-merge-test")
-	if err != nil {
-		t.Fatalf("Failed to create temp dir: %v", err)
-	}
+	require.NoError(t, err)
 	defer os.RemoveAll(tmpDir)
 
 	tests := []struct {
@@ -78,12 +77,12 @@ vpcs:
 			errContains: "not found in one or both files",
 		},
 		{
-			name:        "empty files",
-			yaml1:       "",
-			yaml2:       "",
-			key:         "vpcs",
+			name:        "empty file test", // Changed name to be unique
+			yaml1:       "",                // Empty file
+			yaml2:       "",                // Empty file
+			key:         "test",
 			wantErr:     true,
-			errContains: "validation error: file is empty:", // Note the colon at the end
+			errContains: "error parsing file1: file is empty or invalid",
 		},
 		{
 			name: "different structures",
@@ -157,6 +156,26 @@ workloadAccounts:
 			}
 		})
 	}
+
+	t.Run("empty files", func(t *testing.T) {
+		// Create empty files
+		file1 := filepath.Join(tmpDir, "file1.yaml")
+		file2 := filepath.Join(tmpDir, "file2.yaml")
+
+		// Write empty files
+		err := os.WriteFile(file1, []byte(""), 0644)
+		require.NoError(t, err)
+		err = os.WriteFile(file2, []byte(""), 0644)
+		require.NoError(t, err)
+
+		// Test merging empty files
+		result, err := MergeYAMLFiles(file1, file2, "test", &mockProgress{})
+
+		// We expect an error for empty files
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "error parsing file1: file is empty or invalid")
+		require.Nil(t, result)
+	})
 }
 
 func TestMergeArrays(t *testing.T) {
