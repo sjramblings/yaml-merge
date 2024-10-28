@@ -1,0 +1,282 @@
+homeRegion: &HOME_REGION us-east-1
+defaultVpc:
+  delete: true
+  excludeAccounts: []
+transitGateways:
+  - name: Network-Main
+    account: Network-Prod
+    region: *HOME_REGION
+    shareTargets:
+      organizationalUnits:
+        - Infrastructure
+        - HIS
+        - EIS
+    asn: 65521
+    dnsSupport: enable
+    vpnEcmpSupport: enable
+    defaultRouteTableAssociation: disable
+    defaultRouteTablePropagation: disable
+    autoAcceptSharingAttachments: enable
+    routeTables:
+      - name: Network-Main-Core
+        routes: []
+      - name: Network-Main-Spoke
+        routes:
+          - destinationCidrBlock: 0.0.0.0/0
+            attachment:
+              vpcName: Network-Inspection
+              account: Network-Prod
+centralNetworkServices:
+  delegatedAdminAccount: Network-Prod
+  networkFirewall:
+    firewalls:
+      - name: accelerator-firewall
+        firewallPolicy: accelerator-policy
+        subnets:
+          - Network-Inspection-A
+          - Network-Inspection-B
+        vpc: Network-Inspection
+        loggingConfiguration:
+          - destination: s3
+            type: ALERT
+          - destination: cloud-watch-logs
+            type: FLOW
+    policies:
+      - name: accelerator-policy
+        regions:
+          - *HOME_REGION
+        firewallPolicy:
+          statelessDefaultActions: ["aws:forward_to_sfe"]
+          statelessFragmentDefaultActions: ["aws:forward_to_sfe"]
+          statefulRuleGroups:
+            - name: accelerator-rule-group
+            - name: domain-list-group
+        shareTargets:
+          organizationalUnits:
+            - Infrastructure
+    rules:
+      - name: accelerator-rule-group
+        regions:
+          - *HOME_REGION
+        capacity: 100
+        type: STATEFUL
+        ruleGroup:
+          rulesSource:
+            statefulRules:
+              # Block traffic between production VPCs
+              - action: DROP
+                header:
+                  destination: 10.3.0.0/16
+                  destinationPort: ANY
+                  direction: ANY
+                  protocol: IP
+                  source: 10.4.0.0/16
+                  sourcePort: ANY
+                ruleOptions:
+                  - keyword: sid
+                    settings: ["100"]
+      - name: domain-list-group
+        regions:
+          - *HOME_REGION
+        capacity: 10
+        type: STATEFUL
+        ruleGroup:
+          rulesSource:
+            rulesSourceList:
+              generatedRulesType: DENYLIST
+              # Add/Modify the domain list per business needs.
+              targets: [".google.com"]
+              targetTypes: ["TLS_SNI", "HTTP_HOST"]
+          ruleVariables:
+            ipSets:
+              name: HOME_NET
+              definition:
+                - 10.1.0.0/16
+                - 10.2.0.0/16
+                - 10.3.0.0/16
+                - 10.4.0.0/16
+            portSets:
+              name: HOME_NET
+              definition:
+                - "80"
+                - "443"
+  route53Resolver:
+    endpoints: []
+    queryLogs:
+      name: accelerator-query-logs
+      destinations:
+        - s3
+        - cloud-watch-logs
+      shareTargets:
+        organizationalUnits:
+          - Infrastructure
+    firewallRuleGroups:
+      - name: accelerator-block-group
+        regions:
+          - *HOME_REGION
+        rules:
+          - name: managed-rule
+            action: BLOCK
+            managedDomainList: AWSManagedDomainsBotnetCommandandControl
+            priority: 300
+            blockResponse: NODATA
+        shareTargets:
+          organizationalUnits:
+            - Infrastructure
+endpointPolicies:
+  - name: Default
+    document: vpc-endpoint-policies/default.json
+  - name: Ec2
+    document: vpc-endpoint-policies/ec2.json
+
+vpcs:
+  - name: Network-Endpoints
+    account: Network-Prod
+    region: *HOME_REGION
+    cidrs:
+      - 10.1.0.0/22
+    internetGateway: false
+    enableDnsHostnames: true
+    enableDnsSupport: true
+    instanceTenancy: default
+    queryLogs:
+      - accelerator-query-logs
+    routeTables:
+      - name: Network-Endpoints-Tgw-A
+        routes: []
+      - name: Network-Endpoints-Tgw-B
+        routes: []
+      - name: Network-Endpoints-A
+        routes:
+          - name: TgwRoute
+            destination: 0.0.0.0/0
+            type: transitGateway
+            target: Network-Main
+          - name: S3Gateway
+            type: gatewayEndpoint
+            target: s3
+          - name: DynamoDBGateway
+            type: gatewayEndpoint
+            target: dynamodb
+      - name: Network-Endpoints-B
+        routes:
+          - name: TgwRoute
+            destination: 0.0.0.0/0
+            type: transitGateway
+            target: Network-Main
+          - name: S3Gateway
+            type: gatewayEndpoint
+            target: s3
+          - name: DynamoDBGateway
+            type: gatewayEndpoint
+            target: dynamodb
+    subnets:
+      - name: Network-Endpoints-A
+        availabilityZone: a
+        routeTable: Network-Endpoints-A
+        ipv4CidrBlock: 10.1.0.0/24
+      - name: Network-Endpoints-B
+        availabilityZone: b
+        routeTable: Network-Endpoints-B
+        ipv4CidrBlock: 10.1.1.0/24
+      - name: Network-EndpointsTgwAttach-A
+        availabilityZone: a
+        routeTable: Network-Endpoints-Tgw-A
+        ipv4CidrBlock: 10.1.3.208/28
+      - name: Network-EndpointsTgwAttach-B
+        availabilityZone: b
+        routeTable: Network-Endpoints-Tgw-B
+        ipv4CidrBlock: 10.1.3.224/28
+    transitGatewayAttachments:
+      - name: Network-Endpoints
+        transitGateway:
+          name: Network-Main
+          account: Network-Prod
+        routeTableAssociations:
+          - Network-Main-Core
+        routeTablePropagations:
+          - Network-Main-Spoke
+          - Network-Main-Core
+        subnets:
+          - Network-EndpointsTgwAttach-A
+          - Network-EndpointsTgwAttach-B
+    gatewayEndpoints:
+      defaultPolicy: Default
+      endpoints:
+        - service: s3
+        - service: dynamodb
+    interfaceEndpoints:
+      central: true
+      defaultPolicy: Default
+      subnets:
+        - Network-Endpoints-A
+        - Network-Endpoints-B
+      endpoints:
+        - service: ec2
+        - service: ec2messages
+        - service: ssm
+        - service: ssmmessages
+        - service: kms
+        - service: logs
+vpcFlowLogs:
+  trafficType: ALL
+  maxAggregationInterval: 600
+  destinations:
+    - cloud-watch-logs
+  destinationsConfig:
+    cloudWatchLogs:
+      retentionInDays: 30
+  defaultFormat: false
+  customFields:
+    - version
+    - account-id
+    - interface-id
+    - srcaddr
+    - dstaddr
+    - srcport
+    - dstport
+    - protocol
+    - packets
+    - bytes
+    - start
+    - end
+    - action
+    - log-status
+    - vpc-id
+    - subnet-id
+    - instance-id
+    - tcp-flags
+    - type
+    - pkt-srcaddr
+    - pkt-dstaddr
+    - region
+    - az-id
+    - pkt-src-aws-service
+    - pkt-dst-aws-service
+    - flow-direction
+    - traffic-path
+
+workloadAccounts:
+  # The "name" will be used to set the AWS Account name
+  # The "name" value does not currently support spaces
+  # The "name" value DOES NOT need to match the account name
+  - name: Network-Dev
+    description: The Network Dev account
+    email: <<network-Dev-account-email>>
+    organizationalUnit: Infrastructure/Infra-Dev    
+  - name: Network-Prod
+    description: The Network Prod account
+    email: <<network-Prod-account-email>>
+    organizationalUnit: Infrastructure/Infra-Prod
+  - name: Pacs-Non_prod
+    description: The Non Prod PACS account
+    email: <<workload-account-email>>
+    organizationalUnit: HIS/HIS-Non-Prod
+  - name: Pms-Prod
+    description: The PMS prod account
+    email: <<workload-account-email>>
+    organizationalUnit: HIS/HIS-Prod    
+
+endpointPolicies:
+  - name: Ec2
+    document: vpc-endpoint-policies/ec2.json

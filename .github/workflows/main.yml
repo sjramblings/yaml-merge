@@ -1,0 +1,117 @@
+name: Build and Release
+
+on:
+  push:
+    branches: [ main ]
+    tags:
+      - 'v*'
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+          cache: true
+
+      - name: Run Tests
+        run: make test
+
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage.out
+
+  build:
+    name: Build Binary
+    needs: test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [linux, darwin, windows]
+        arch: [amd64, arm64]
+        exclude:
+          - os: windows
+            arch: arm64
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+          cache: true
+
+      - name: Build
+        env:
+          GOOS: ${{ matrix.os }}
+          GOARCH: ${{ matrix.arch }}
+        run: |
+          BINARY_SUFFIX=""
+          if [ "${{ matrix.os }}" = "windows" ]; then
+            BINARY_SUFFIX=".exe"
+          fi
+          make build
+          mv yaml-merge "yaml-merge-${{ matrix.os }}-${{ matrix.arch }}${BINARY_SUFFIX}"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: yaml-merge-${{ matrix.os }}-${{ matrix.arch }}
+          path: yaml-merge-${{ matrix.os }}-${{ matrix.arch }}*
+
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Generate changelog
+        id: changelog
+        uses: conventional-changelog/conventional-changelog-action@v4
+        with:
+          config-file-path: .github/changelog-config.json
+          release-count: 0
+          version-file: ./version.json
+          version: ${{ github.ref_name }}
+          
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: Release ${{ github.ref_name }}
+          body: ${{ steps.changelog.outputs.clean_changelog }}
+          draft: false
+          prerelease: false
+          files: |
+            yaml-merge-*/*
+
+  # Cleanup old artifacts
+  cleanup:
+    name: Cleanup Artifacts
+    needs: release
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete artifacts
+        uses: geekyeggo/delete-artifact@v2
+        with:
+          name: |
+            yaml-merge-*
+            coverage
