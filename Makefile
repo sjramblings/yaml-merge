@@ -11,7 +11,7 @@ DIST_DIR=dist
 
 # Version information
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
-GIT_COMMIT=$(shell git rev-parse HEAD)
+GIT_COMMIT ?= $(shell git rev-parse HEAD 2>/dev/null || echo "unknown")
 BUILD_TIME=$(shell date -u '+%Y-%m-%d_%H:%M:%S')
 
 # Build flags

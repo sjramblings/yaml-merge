@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/sjramblings/yaml-merge/internal/merger"
 	"github.com/sjramblings/yaml-merge/internal/progress"
@@ -14,30 +13,25 @@ var (
 	version   string
 	gitCommit string
 	buildTime string
-
-	// CLI flags
-	file1 string
-	file2 string
-	key   string
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "yaml-merge",
+	Use:   "yaml-merge <file1> <file2> <key>",
 	Short: "A tool to merge YAML files",
 	Long: `yaml-merge is a CLI tool that merges two YAML files based on a specified key.
-It can combine sequences from both files while removing duplicates.`,
-	Version: version,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		// Create progress tracker
-		prog := &progress.ConsoleProgress{}
+It can combine sequences from both files while removing duplicates.
 
-		// Validate input files exist
-		if _, err := os.Stat(file1); os.IsNotExist(err) {
-			return fmt.Errorf("file not found: %s", file1)
-		}
-		if _, err := os.Stat(file2); os.IsNotExist(err) {
-			return fmt.Errorf("file not found: %s", file2)
-		}
+Example:
+  yaml-merge file1.yaml file2.yaml workloadAccounts`,
+	Version: version,
+	Args:    cobra.ExactArgs(3), // Require exactly 3 arguments
+	RunE: func(cmd *cobra.Command, args []string) error {
+		file1 := args[0]
+		file2 := args[1]
+		key := args[2]
+
+		// Create progress tracker
+		prog := progress.NewConsoleWriter(false)
 
 		// Perform merge
 		result, err := merger.MergeYAMLFiles(file1, file2, key, prog)
@@ -67,13 +61,5 @@ Build Time: ` + buildTime + "\n")
 }
 
 func init() {
-	// Required flags
-	rootCmd.Flags().StringVarP(&file1, "file1", "1", "", "First YAML file to merge (required)")
-	rootCmd.Flags().StringVarP(&file2, "file2", "2", "", "Second YAML file to merge (required)")
-	rootCmd.Flags().StringVarP(&key, "key", "k", "", "Key to merge on (required)")
-
-	// Mark flags as required
-	rootCmd.MarkFlagRequired("file1")
-	rootCmd.MarkFlagRequired("file2")
-	rootCmd.MarkFlagRequired("key")
+	// No flags needed anymore
 }

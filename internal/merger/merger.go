@@ -4,17 +4,17 @@ import (
 	"bytes"
 	"fmt"
 	"os"
-	"yaml-merge/internal/progress"
 
+	"github.com/sjramblings/yaml-merge/internal/progress"
 	"gopkg.in/yaml.v3"
 )
 
 func MergeYAMLFiles(file1, file2, key string, pw progress.Writer) ([]byte, error) {
 	pw.Start("Starting YAML Merge")
 	pw.Step("Processing files:")
-	pw.Step("  1. %s", file1)
-	pw.Step("  2. %s", file2)
-	pw.Step("  Key: %s", key)
+	pw.Step("   1. %s", file1)
+	pw.Step("   2. %s", file2)
+	pw.Step("   Key: %s", key)
 	pw.End()
 
 	// Validate inputs
