@@ -30,7 +30,7 @@ ARCHITECTURES=amd64 arm64
 all: test build
 
 build: ensure-dirs ## Build the binary
-	$(GOBUILD) $(LDFLAGS) -o $(BIN_DIR)/$(BINARY_NAME) ./cmd/yaml-merge
+	go build -ldflags " -s -w -X main.version=${VERSION} -X main.gitCommit=${GIT_COMMIT} -X main.buildTime=${BUILD_TIME}" -o bin/yaml-merge ./cmd/yaml-merge
 
 ensure-dirs: ## Create necessary directories
 	@mkdir -p $(BIN_DIR)

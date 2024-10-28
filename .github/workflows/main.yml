@@ -61,7 +61,7 @@ jobs:
             BINARY_SUFFIX=".exe"
           fi
           make build
-          mv yaml-merge "yaml-merge-${{ matrix.os }}-${{ matrix.arch }}${BINARY_SUFFIX}"
+          mv bin/yaml-merge "yaml-merge-${{ matrix.os }}-${{ matrix.arch }}${BINARY_SUFFIX}"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
