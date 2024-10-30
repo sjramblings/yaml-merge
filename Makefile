@@ -135,18 +135,57 @@ help: ## Display this help screen
 
 # Add these new targets to your existing Makefile
 create-branch: ## Create a new feature branch
-	@read -p "Enter branch name (feature/fix/docs/etc): " branch; \
-	git checkout -b $$branch
+	@read -p "Enter branch type (feature/fix/docs/deps): " type; \
+	read -p "Enter branch description: " desc; \
+	BRANCH_NAME="$$type/$$desc"; \
+	BRANCH_NAME=$$(echo "$$BRANCH_NAME" | tr ' ' '-'); \
+	git checkout -b "$$BRANCH_NAME"
 
-create-pr: ## Create a pull request
+create-pr: ## Create a pull request with appropriate labels
 	@if [ -z "$(title)" ]; then \
 		echo "Error: Please provide a PR title using 'make create-pr title=\"Your PR title\"'"; \
 		exit 1; \
+	fi; \
+	BRANCH_NAME=$$(git rev-parse --abbrev-ref HEAD); \
+	LABELS=""; \
+	if echo "$$BRANCH_NAME" | grep -q "^feature\|feature/"; then \
+		LABELS="--label enhancement"; \
+	elif echo "$$BRANCH_NAME" | grep -q "^fix\|fix/"; then \
+		LABELS="--label bug"; \
+	elif echo "$$BRANCH_NAME" | grep -q "^docs\|docs/"; then \
+		LABELS="--label documentation"; \
+	elif echo "$$BRANCH_NAME" | grep -q "^deps\|deps/"; then \
+		LABELS="--label dependencies"; \
+	fi; \
+	if [ -n "$$LABELS" ]; then \
+		gh pr create --title "$(title)" --body-file .github/pull_request_template.md $$LABELS; \
+	else \
+		echo "Warning: Branch name '$$BRANCH_NAME' doesn't match expected patterns. Creating PR without labels."; \
+		gh pr create --title "$(title)" --body-file .github/pull_request_template.md; \
 	fi
-	@gh pr create --title "$(title)" --body-file .github/pull_request_template.md
 
-update-pr: ## Update pull request
-	@gh pr edit --title "$(title)" --body-file .github/pull_request_template.md
+update-pr: ## Update pull request with appropriate labels
+	@if [ -z "$(title)" ]; then \
+		echo "Error: Please provide a PR title using 'make update-pr title=\"Your PR title\"'"; \
+		exit 1; \
+	fi; \
+	BRANCH_NAME=$$(git rev-parse --abbrev-ref HEAD); \
+	LABELS=""; \
+	if echo "$$BRANCH_NAME" | grep -q "^feature\|feature/"; then \
+		LABELS="--label enhancement"; \
+	elif echo "$$BRANCH_NAME" | grep -q "^fix\|fix/"; then \
+		LABELS="--label bug"; \
+	elif echo "$$BRANCH_NAME" | grep -q "^docs\|docs/"; then \
+		LABELS="--label documentation"; \
+	elif echo "$$BRANCH_NAME" | grep -q "^deps\|deps/"; then \
+		LABELS="--label dependencies"; \
+	fi; \
+	if [ -n "$$LABELS" ]; then \
+		gh pr edit --title "$(title)" --body-file .github/pull_request_template.md $$LABELS; \
+	else \
+		echo "Warning: Branch name '$$BRANCH_NAME' doesn't match expected patterns. Updating PR without labels."; \
+		gh pr edit --title "$(title)" --body-file .github/pull_request_template.md; \
+	fi
 
 check-pr: ## Run pre-PR checks
 	@make fmt
