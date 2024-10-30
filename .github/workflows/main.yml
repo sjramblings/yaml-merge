@@ -127,3 +127,65 @@ jobs:
           name: |
             yaml-merge-*
             coverage
+
+  pr-automation:
+    name: Pull Request Automation
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && !startsWith(github.ref, 'refs/tags/')
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create PR for feature branches
+        if: startsWith(github.ref, 'refs/heads/feature/') || startsWith(github.ref, 'refs/heads/fix/')
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Extract branch name
+          BRANCH_NAME=${GITHUB_REF#refs/heads/}
+          
+          # Create PR title from branch name
+          PR_TITLE=$(echo $BRANCH_NAME | sed 's/feature\//feat: /;s/fix\//fix: /')
+          
+          # Check if PR already exists
+          PR_EXISTS=$(gh pr list --head $BRANCH_NAME --json number -q '.[0].number')
+          
+          if [ -z "$PR_EXISTS" ]; then
+            # Create new PR
+            gh pr create \
+              --title "$PR_TITLE" \
+              --body-file .github/pull_request_template.md \
+              --base main \
+              --label "automated-pr"
+          else
+            # Update existing PR
+            gh pr edit $PR_EXISTS \
+              --title "$PR_TITLE" \
+              --body-file .github/pull_request_template.md
+          fi
+
+      - name: Auto-label PRs
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const branchName = pr.head.ref;
+            
+            // Add labels based on branch prefix
+            if (branchName.startsWith('feature/')) {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+                labels: ['enhancement']
+              });
+            } else if (branchName.startsWith('fix/')) {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+                labels: ['bug']
+              });
+            }

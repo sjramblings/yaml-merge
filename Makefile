@@ -125,3 +125,24 @@ help: ## Display this help screen
 	@grep -h -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
 .DEFAULT_GOAL := help
+
+# Add these new targets to your existing Makefile
+create-branch: ## Create a new feature branch
+	@read -p "Enter branch name (feature/fix/docs/etc): " branch; \
+	git checkout -b $$branch
+
+create-pr: ## Create a pull request
+	@if [ -z "$(title)" ]; then \
+		echo "Error: Please provide a PR title using 'make create-pr title=\"Your PR title\"'"; \
+		exit 1; \
+	fi
+	@gh pr create --title "$(title)" --body-file .github/pull_request_template.md
+
+update-pr: ## Update pull request
+	@gh pr edit --title "$(title)" --body-file .github/pull_request_template.md
+
+check-pr: ## Run pre-PR checks
+	@make fmt
+	@make vet
+	@make lint
+	@make test
