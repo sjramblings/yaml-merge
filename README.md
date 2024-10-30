@@ -28,7 +28,7 @@ I needed a tool to merge YAML files for a project, but found that existing tools
 
 ```bash
 bash
-go install github.com/yourusername/yaml-merge@latest
+go install github.com/sjramblings/yaml-merge@latest
 ```
 
 ## Usage

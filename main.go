@@ -14,11 +14,12 @@ var (
 	buildTime = "unknown"
 )
 
-var exit = os.Exit
+// Exit function variable for testing
+var Exit = os.Exit
 
 func main() {
 	if err := cmd.Execute(version, gitCommit, buildTime); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-		exit(1)
+		Exit(1)
 	}
 }
