@@ -30,7 +30,7 @@ ARCHITECTURES=amd64 arm64
 all: test build
 
 build: ensure-dirs ## Build the binary
-	go build -ldflags " -s -w -X main.version=${VERSION} -X main.gitCommit=${GIT_COMMIT} -X main.buildTime=${BUILD_TIME}" -o bin/yaml-merge ./cmd/yaml-merge
+	go build -ldflags " -s -w -X main.version=${VERSION} -X main.gitCommit=${GIT_COMMIT} -X main.buildTime=${BUILD_TIME}" -o bin/yaml-merge .
 
 ensure-dirs: ## Create necessary directories
 	@mkdir -p $(BIN_DIR)
@@ -52,7 +52,7 @@ cross-build: clean ensure-dirs ## Build for multiple platforms
 	$(foreach GOOS, $(PLATFORMS),\
 		$(foreach GOARCH, $(ARCHITECTURES),\
 			$(if $(filter $(GOOS)/$(GOARCH),windows/arm64), ,\
-				GOOS=$(GOOS) GOARCH=$(GOARCH) $(GOBUILD) $(LDFLAGS) -o $(DIST_DIR)/$(BINARY_NAME)-$(GOOS)-$(GOARCH)$(if $(filter windows,$(GOOS)),.exe,) ./cmd/yaml-merge; \
+				GOOS=$(GOOS) GOARCH=$(GOARCH) $(GOBUILD) $(LDFLAGS) -o $(DIST_DIR)/$(BINARY_NAME)-$(GOOS)-$(GOARCH)$(if $(filter windows,$(GOOS)),.exe,) . \
 			) \
 		) \
 	)

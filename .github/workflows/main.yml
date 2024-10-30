@@ -84,9 +84,9 @@ jobs:
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
     permissions:
-      contents: write  # Needed for creating releases
-      issues: write    # Needed for changelog
-      pull-requests: write  # Needed for changelog
+      contents: write
+      issues: write
+      pull-requests: write
 
     steps:
       - uses: actions/checkout@v4
@@ -154,17 +154,31 @@ jobs:
               "max_back_track_time_days": 90
             }
 
-      - name: Create Release
+      - name: Create Version Release
         uses: softprops/action-gh-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          name: Release ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
           body: ${{ steps.changelog.outputs.changelog }}
           draft: false
           prerelease: false
           files: |
             yaml-merge-*/*
+
+      - name: Update Latest Release
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          name: "Latest"
+          tag_name: "latest"
+          body: ${{ steps.changelog.outputs.changelog }}
+          draft: false
+          prerelease: false
+          files: |
+            yaml-merge-*/*
+          update_existing: true
 
   # Cleanup old artifacts
   cleanup:
@@ -174,7 +188,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Delete artifacts
-        uses: geekyeggo/delete-artifact@v2
+        uses: geekyeggo/delete-artifact@v5
         with:
           name: |
             yaml-merge-*
