@@ -13,7 +13,9 @@ yaml-merge is designed to merge two YAML files by combining sequences (arrays) u
 
 ## Motivation
 
-I needed a tool to merge YAML files for a project, but found that existing tools either didn't handle duplicates or didn't preserve the order of the sequences. This tool was developed to address these specific needs mostly in relation to my use of the AWS Landing Zone Accelerator Solution - [https://github.com/aws-ia/terraform-aws-landingzone-accelerator](https://github.com/aws-ia/terraform-aws-landingzone-accelerator) which extracts AWS resource configuration from a set of YAML files.
+I needed a tool to merge YAML files for a project, but found that existing tools either didn't handle duplicates or didn't preserve the order of the sequences. 
+
+This tool was developed to address these specific needs mostly in relation to my use of the AWS Landing Zone Accelerator Solution - [https://github.com/aws-ia/terraform-aws-landingzone-accelerator](https://github.com/aws-ia/terraform-aws-landingzone-accelerator) which extracts AWS resource configuration from a set of YAML files.
 
 ## Features
 
