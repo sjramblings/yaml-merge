@@ -71,12 +71,19 @@ bump-major: ## Bump major version (x.0.0)
 
 bump-minor: ## Bump minor version (0.x.0)
 	@echo "Bumping minor version..."
-	$(eval CURRENT_VERSION=$(shell git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0"))
-	$(eval MAJOR_VERSION=$(shell echo $(CURRENT_VERSION) | cut -d. -f1))
-	$(eval MINOR_VERSION=$(shell echo $(CURRENT_VERSION) | cut -d. -f2))
-	$(eval NEW_VERSION="$(MAJOR_VERSION).$$(($(MINOR_VERSION)+1)).0")
-	@echo "New version: $(NEW_VERSION)"
-	@echo "$(NEW_VERSION)" > .version
+	@if [ -z "$$(git tag)" ]; then \
+		echo "v0.1.0" > .version; \
+	else \
+		CURRENT_VERSION=$$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0"); \
+		MAJOR=$$(echo $$CURRENT_VERSION | cut -d. -f1); \
+		MINOR=$$(echo $$CURRENT_VERSION | cut -d. -f2); \
+		PATCH=$$(echo $$CURRENT_VERSION | cut -d. -f3); \
+		NEW_MINOR=$$((MINOR + 1)); \
+		NEW_VERSION="$$MAJOR.$$NEW_MINOR.0"; \
+		echo "$$NEW_VERSION" > .version; \
+	fi
+	@NEW_VERSION=$$(cat .version); \
+	echo "New version: $$NEW_VERSION"
 
 bump-patch: ## Bump patch version (0.0.x)
 	@echo "Bumping patch version..."
@@ -128,21 +135,80 @@ help: ## Display this help screen
 
 # Add these new targets to your existing Makefile
 create-branch: ## Create a new feature branch
-	@read -p "Enter branch name (feature/fix/docs/etc): " branch; \
-	git checkout -b $$branch
+	@if [ "$$(git rev-parse --abbrev-ref HEAD)" != "main" ]; then \
+		echo "Error: Please checkout main branch first"; \
+		echo "Run: git checkout main"; \
+		exit 1; \
+	fi; \
+	read -p "Enter branch type (feature/fix/docs/deps): " type; \
+	read -p "Enter branch description: " desc; \
+	BRANCH_NAME="$$type/$$desc"; \
+	BRANCH_NAME=$$(echo "$$BRANCH_NAME" | tr ' ' '-'); \
+	git fetch origin main; \
+	git checkout -b "$$BRANCH_NAME" origin/main
 
-create-pr: ## Create a pull request
+create-pr: ## Create a pull request with appropriate labels
 	@if [ -z "$(title)" ]; then \
 		echo "Error: Please provide a PR title using 'make create-pr title=\"Your PR title\"'"; \
 		exit 1; \
+	fi; \
+	BRANCH_NAME=$$(git rev-parse --abbrev-ref HEAD); \
+	LABELS=""; \
+	if echo "$$BRANCH_NAME" | grep -q "^feature\|feature/"; then \
+		LABELS="--label enhancement"; \
+	elif echo "$$BRANCH_NAME" | grep -q "^fix\|fix/"; then \
+		LABELS="--label bug"; \
+	elif echo "$$BRANCH_NAME" | grep -q "^docs\|docs/"; then \
+		LABELS="--label documentation"; \
+	elif echo "$$BRANCH_NAME" | grep -q "^deps\|deps/"; then \
+		LABELS="--label dependencies"; \
+	fi; \
+	if [ -n "$$LABELS" ]; then \
+		gh pr create --title "$(title)" --body-file .github/pull_request_template.md $$LABELS; \
+	else \
+		echo "Warning: Branch name '$$BRANCH_NAME' doesn't match expected patterns. Creating PR without labels."; \
+		gh pr create --title "$(title)" --body-file .github/pull_request_template.md; \
 	fi
-	@gh pr create --title "$(title)" --body-file .github/pull_request_template.md
 
-update-pr: ## Update pull request
-	@gh pr edit --title "$(title)" --body-file .github/pull_request_template.md
+update-pr: ## Update pull request with appropriate labels
+	@if [ -z "$(title)" ]; then \
+		echo "Error: Please provide a PR title using 'make update-pr title=\"Your PR title\"'"; \
+		exit 1; \
+	fi; \
+	BRANCH_NAME=$$(git rev-parse --abbrev-ref HEAD); \
+	LABELS=""; \
+	if echo "$$BRANCH_NAME" | grep -q "^feature\|feature/"; then \
+		LABELS="--label enhancement"; \
+	elif echo "$$BRANCH_NAME" | grep -q "^fix\|fix/"; then \
+		LABELS="--label bug"; \
+	elif echo "$$BRANCH_NAME" | grep -q "^docs\|docs/"; then \
+		LABELS="--label documentation"; \
+	elif echo "$$BRANCH_NAME" | grep -q "^deps\|deps/"; then \
+		LABELS="--label dependencies"; \
+	fi; \
+	if [ -n "$$LABELS" ]; then \
+		gh pr edit --title "$(title)" --body-file .github/pull_request_template.md $$LABELS; \
+	else \
+		echo "Warning: Branch name '$$BRANCH_NAME' doesn't match expected patterns. Updating PR without labels."; \
+		gh pr edit --title "$(title)" --body-file .github/pull_request_template.md; \
+	fi
 
 check-pr: ## Run pre-PR checks
 	@make fmt
 	@make vet
 	@make lint
 	@make test
+
+# Also add a new target for switching branches
+switch-branch: ## Switch to a new branch from main
+	@if [ "$$(git rev-parse --abbrev-ref HEAD)" = "main" ]; then \
+		read -p "Enter branch type (feature/fix/docs/deps): " type; \
+		read -p "Enter branch description: " desc; \
+		BRANCH_NAME="$$type/$$desc"; \
+		BRANCH_NAME=$$(echo "$$BRANCH_NAME" | tr ' ' '-'); \
+		git checkout -b "$$BRANCH_NAME"; \
+	else \
+		echo "Current branch: $$(git rev-parse --abbrev-ref HEAD)"; \
+		echo "First run: git checkout main"; \
+		exit 1; \
+	fi
