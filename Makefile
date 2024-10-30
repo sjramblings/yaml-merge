@@ -135,11 +135,17 @@ help: ## Display this help screen
 
 # Add these new targets to your existing Makefile
 create-branch: ## Create a new feature branch
-	@read -p "Enter branch type (feature/fix/docs/deps): " type; \
+	@if [ "$$(git rev-parse --abbrev-ref HEAD)" != "main" ]; then \
+		echo "Error: Please checkout main branch first"; \
+		echo "Run: git checkout main"; \
+		exit 1; \
+	fi; \
+	read -p "Enter branch type (feature/fix/docs/deps): " type; \
 	read -p "Enter branch description: " desc; \
 	BRANCH_NAME="$$type/$$desc"; \
 	BRANCH_NAME=$$(echo "$$BRANCH_NAME" | tr ' ' '-'); \
-	git checkout -b "$$BRANCH_NAME"
+	git fetch origin main; \
+	git checkout -b "$$BRANCH_NAME" origin/main
 
 create-pr: ## Create a pull request with appropriate labels
 	@if [ -z "$(title)" ]; then \
@@ -192,3 +198,17 @@ check-pr: ## Run pre-PR checks
 	@make vet
 	@make lint
 	@make test
+
+# Also add a new target for switching branches
+switch-branch: ## Switch to a new branch from main
+	@if [ "$$(git rev-parse --abbrev-ref HEAD)" = "main" ]; then \
+		read -p "Enter branch type (feature/fix/docs/deps): " type; \
+		read -p "Enter branch description: " desc; \
+		BRANCH_NAME="$$type/$$desc"; \
+		BRANCH_NAME=$$(echo "$$BRANCH_NAME" | tr ' ' '-'); \
+		git checkout -b "$$BRANCH_NAME"; \
+	else \
+		echo "Current branch: $$(git rev-parse --abbrev-ref HEAD)"; \
+		echo "First run: git checkout main"; \
+		exit 1; \
+	fi
