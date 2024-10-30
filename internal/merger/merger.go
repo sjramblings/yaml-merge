@@ -9,6 +9,16 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// MergeYAMLFiles combines two YAML files based on a specified key.
+// It reads both files, merges their contents, and returns the merged result.
+// Parameters:
+//   - file1, file2: paths to the YAML files to merge
+//   - key: the top-level key containing the array to merge
+//   - pw: progress writer for logging operations
+//
+// Returns:
+//   - merged YAML content as bytes
+//   - error if any operation fails
 func MergeYAMLFiles(file1, file2, key string, pw progress.Writer) ([]byte, error) {
 	pw.Start("Starting YAML Merge")
 	pw.Step("Processing files:")
@@ -143,6 +153,18 @@ func MergeYAMLFiles(file1, file2, key string, pw progress.Writer) ([]byte, error
 	return buf.Bytes(), nil
 }
 
+// mergeArrays combines two YAML arrays while preserving order and handling duplicates.
+// The merge strategy:
+// 1. Items from array1 maintain their original order
+// 2. Items from array2 either:
+//   - Replace matching items from array1 (based on 'name' field)
+//   - Get appended to the end if they're new
+//
+// Parameters:
+//   - array1, array2: YAML nodes containing the sequences to merge
+//
+// Returns:
+//   - merged array of YAML nodes
 func mergeArrays(array1, array2 *yaml.Node) []*yaml.Node {
 	seen := make(map[string]*yaml.Node)
 
@@ -211,6 +233,11 @@ func mergeArrays(array1, array2 *yaml.Node) []*yaml.Node {
 	return result
 }
 
+// processArrayItems processes YAML array items and stores them in a map.
+// It creates deep copies of nodes to prevent modifying the original data.
+// Parameters:
+//   - items: array of YAML nodes to process
+//   - seen: map to store processed items, keyed by their names
 func processArrayItems(items []*yaml.Node, seen map[string]*yaml.Node) {
 	for _, item := range items {
 		name := getNodeName(item)
@@ -252,6 +279,15 @@ func processArrayItems(items []*yaml.Node, seen map[string]*yaml.Node) {
 	}
 }
 
+// getNodeName extracts the name from a YAML node.
+// It handles two cases:
+// 1. Simple scalar nodes: returns the direct value
+// 2. Mapping nodes: looks for a "name" field and returns its value
+// Parameters:
+//   - node: YAML node to extract name from
+//
+// Returns:
+//   - name string if found, empty string otherwise
 func getNodeName(node *yaml.Node) string {
 	// For test data that might be simple scalar nodes
 	if node.Kind == yaml.ScalarNode {
