@@ -71,12 +71,19 @@ bump-major: ## Bump major version (x.0.0)
 
 bump-minor: ## Bump minor version (0.x.0)
 	@echo "Bumping minor version..."
-	$(eval CURRENT_VERSION=$(shell git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0"))
-	$(eval MAJOR_VERSION=$(shell echo $(CURRENT_VERSION) | cut -d. -f1))
-	$(eval MINOR_VERSION=$(shell echo $(CURRENT_VERSION) | cut -d. -f2))
-	$(eval NEW_VERSION="$(MAJOR_VERSION).$$(($(MINOR_VERSION)+1)).0")
-	@echo "New version: $(NEW_VERSION)"
-	@echo "$(NEW_VERSION)" > .version
+	@if [ -z "$$(git tag)" ]; then \
+		echo "v0.1.0" > .version; \
+	else \
+		CURRENT_VERSION=$$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0"); \
+		MAJOR=$$(echo $$CURRENT_VERSION | cut -d. -f1); \
+		MINOR=$$(echo $$CURRENT_VERSION | cut -d. -f2); \
+		PATCH=$$(echo $$CURRENT_VERSION | cut -d. -f3); \
+		NEW_MINOR=$$((MINOR + 1)); \
+		NEW_VERSION="$$MAJOR.$$NEW_MINOR.0"; \
+		echo "$$NEW_VERSION" > .version; \
+	fi
+	@NEW_VERSION=$$(cat .version); \
+	echo "New version: $$NEW_VERSION"
 
 bump-patch: ## Bump patch version (0.0.x)
 	@echo "Bumping patch version..."
