@@ -257,9 +257,6 @@ vpcFlowLogs:
     - traffic-path
 
 workloadAccounts:
-  # The "name" will be used to set the AWS Account name
-  # The "name" value does not currently support spaces
-  # The "name" value DOES NOT need to match the account name
   - name: Network-Dev
     description: The Network Dev account
     email: <<network-Dev-account-email>>

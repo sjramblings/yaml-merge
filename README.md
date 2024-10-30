@@ -13,7 +13,7 @@ yaml-merge is designed to merge two YAML files by combining sequences (arrays) u
 
 ## Motivation
 
-I needed a tool to merge YAML files for a project, but found that existing tools either didn't handle duplicates or didn't preserve the order of the sequences. This tool was developed to address these specific needs mostly in relation to my use of the AWS Landing Zone Accelerator Solution - [https://github.com/aws-ia/terraform-aws-landingzone-accelerator](https://github.com/aws-ia/terraform-aws-landingzone-accelerator).
+I needed a tool to merge YAML files for a project, but found that existing tools either didn't handle duplicates or didn't preserve the order of the sequences. This tool was developed to address these specific needs mostly in relation to my use of the AWS Landing Zone Accelerator Solution - [https://github.com/aws-ia/terraform-aws-landingzone-accelerator](https://github.com/aws-ia/terraform-aws-landingzone-accelerator) which extracts AWS resource configuration from a set of YAML files.
 
 ## Features
 
@@ -27,7 +27,6 @@ I needed a tool to merge YAML files for a project, but found that existing tools
 ## Installation
 
 ```bash
-bash
 go install github.com/sjramblings/yaml-merge@latest
 ```
 
@@ -61,15 +60,31 @@ yaml-merge file1.yaml file2.yaml key -q
 file1.yaml:
 ```yaml
 workloadAccounts:
+  - name: Network-Dev
+    description: The Network Dev account
+    email: <<network-Dev-account-email>>
+    organizationalUnit: Infrastructure/Infra-Dev    
   - name: Network-Prod
     description: The Network Prod account
     email: <<network-Prod-account-email>>
     organizationalUnit: Infrastructure/Infra-Prod
+  - name: Pacs-Non_prod
+    description: The Non Prod PACS account
+    email: <<workload-account-email>>
+    organizationalUnit: HIS/HIS-Non-Prod
+  - name: Pms-Prod
+    description: The PMS prod account
+    email: <<workload-account-email>>
+    organizationalUnit: HIS/HIS-Prod  
 ```
 
 file2.yaml:
 ```yaml
 workloadAccounts:
+  - name: Network-Dev
+    description: The Network Dev account
+    email: <<network-Dev-account-email>>
+    organizationalUnit: Infrastructure/Infra-Dev    
   - name: Network-Prod
     description: The Network Prod account
     email: <<network-Prod-account-email>>
@@ -79,17 +94,42 @@ workloadAccounts:
 ### Command
 
 ```bash
-yaml-merge file1.yaml file2.yaml workloadAccounts
+yaml-merge test/fixtures/file1.yaml test/fixtures/file2.yaml workloadAccounts
 ```
 
 ### Output
 
-```yaml
+```bash
+=== Starting YAML Merge ===
+→ Processing files:
+→    1. test/fixtures/file1.yaml
+→    2. test/fixtures/file2.yaml
+→    Key: workloadAccounts
+
+✓ Read test/fixtures/file1.yaml (7763 bytes)
+✓ Read test/fixtures/file2.yaml (15824 bytes)
+✓ Parsed test/fixtures/file1.yaml
+✓ Parsed test/fixtures/file2.yaml
+Found in test/fixtures/file1.yaml (4 items):
+Found in test/fixtures/file2.yaml (2 items):
+
 workloadAccounts:
-  - name: Network-Prod
-    description: The Network Prod account
-    email: <<network-Prod-account-email>>
-    organizationalUnit: Infrastructure/Infra-Prod
+    - name: Network-Dev
+      description: The Network Dev account
+      email: <<network-Dev-account-email>>
+      organizationalUnit: Infrastructure/Infra-Dev
+    - name: Network-Prod
+      description: The Network Prod account
+      email: <<network-Prod-account-email>>
+      organizationalUnit: Infrastructure/Infra-Prod
+    - name: Pacs-Non_prod
+      description: The Non Prod PACS account
+      email: <<workload-account-email>>
+      organizationalUnit: HIS/HIS-Non-Prod
+    - name: Pms-Prod
+      description: The PMS prod account
+      email: <<workload-account-email>>
+      organizationalUnit: HIS/HIS-Prod
 ```
 
 ## Design
