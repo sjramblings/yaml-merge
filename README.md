@@ -11,6 +11,10 @@ yaml-merge is designed to merge two YAML files by combining sequences (arrays) u
 - Merging deployment manifests
 - Consolidating configuration files
 
+## Motivation
+
+I needed a tool to merge YAML files for a project, but found that existing tools either didn't handle duplicates or didn't preserve the order of the sequences. This tool was developed to address these specific needs mostly in relation to my use of the AWS Landing Zone Accelerator Solution - [https://github.com/aws-ia/terraform-aws-landingzone-accelerator](https://github.com/aws-ia/terraform-aws-landingzone-accelerator).
+
 ## Features
 
 - Merges YAML sequences while preserving order
@@ -18,7 +22,7 @@ yaml-merge is designed to merge two YAML files by combining sequences (arrays) u
 - Validates input files and structure
 - Provides detailed progress output
 - Supports quiet mode for CI/CD pipelines
-- Maintains YAML formatting and indentation
+- Maintains YAML formatting and indentation, including anchors
 
 ## Installation
 
@@ -88,7 +92,6 @@ workloadAccounts:
     organizationalUnit: Infrastructure/Infra-Prod
 ```
 
-
 ## Design
 
 The tool follows a modular design with several key components:
@@ -109,21 +112,12 @@ The tool follows a modular design with several key components:
    - Supports quiet mode for CI/CD
    - Formats output consistently
 
-### Merge Algorithm
-
-The merge process follows these steps:
-
-1. Validates input files for existence and format
-2. Parses YAML content using gopkg.in/yaml.v3
-3. Merges sequences under the specified key
-4. Detects and handles duplicates based on the `name` field
-5. Maintains YAML formatting and indentation
-6. Outputs the merged result
-
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
-[Your chosen license]
+Apache License 2.0
+
+This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
