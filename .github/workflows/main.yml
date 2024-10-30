@@ -101,7 +101,59 @@ jobs:
         uses: mikepenz/release-changelog-builder-action@v4
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          
+        with:
+          configuration: |
+            {
+              "categories": [
+                {
+                  "title": "## 🚀 Features",
+                  "labels": ["enhancement", "feature"]
+                },
+                {
+                  "title": "## 🐛 Bug Fixes",
+                  "labels": ["bug", "fix"]
+                },
+                {
+                  "title": "## 📚 Documentation",
+                  "labels": ["documentation"]
+                },
+                {
+                  "title": "## 🔨 Dependencies",
+                  "labels": ["dependencies"]
+                },
+                {
+                  "title": "## 🧪 Tests",
+                  "labels": ["test"]
+                }
+              ],
+              "template": "#{{CHANGELOG}}#\n\n<details>\n<summary>🔍 Uncategorized</summary>\n\n#{{UNCATEGORIZED}}#\n</details>",
+              "pr_template": "- #{{TITLE}}# (#{{NUMBER}}#)",
+              "empty_template": "- No changes in this release 🤷",
+              "label_extractor": [
+                {
+                  "pattern": "^feat.*",
+                  "target": "enhancement"
+                },
+                {
+                  "pattern": "^fix.*",
+                  "target": "bug"
+                },
+                {
+                  "pattern": "^docs.*",
+                  "target": "documentation"
+                },
+                {
+                  "pattern": "^deps.*",
+                  "target": "dependencies"
+                }
+              ],
+              "base_branches": ["main"],
+              "sort": "ASC",
+              "max_tags_to_fetch": 200,
+              "max_pull_requests": 200,
+              "max_back_track_time_days": 90
+            }
+
       - name: Create Release
         uses: softprops/action-gh-release@v1
         env:
