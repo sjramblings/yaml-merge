@@ -233,52 +233,6 @@ func mergeArrays(array1, array2 *yaml.Node) []*yaml.Node {
 	return result
 }
 
-// processArrayItems processes YAML array items and stores them in a map.
-// It creates deep copies of nodes to prevent modifying the original data.
-// Parameters:
-//   - items: array of YAML nodes to process
-//   - seen: map to store processed items, keyed by their names
-func processArrayItems(items []*yaml.Node, seen map[string]*yaml.Node) {
-	for _, item := range items {
-		name := getNodeName(item)
-		if name != "" {
-			// Create a deep copy of the item
-			nodeCopy := &yaml.Node{
-				Kind:        item.Kind,
-				Style:       0,
-				Tag:         item.Tag,
-				Value:       item.Value,
-				Anchor:      item.Anchor,
-				Alias:       item.Alias,
-				LineComment: item.LineComment,
-				HeadComment: item.HeadComment,
-				FootComment: item.FootComment,
-			}
-
-			// Deep copy the content
-			if item.Content != nil {
-				nodeCopy.Content = make([]*yaml.Node, len(item.Content))
-				for i, n := range item.Content {
-					contentCopy := &yaml.Node{
-						Kind:        n.Kind,
-						Style:       0,
-						Tag:         n.Tag,
-						Value:       n.Value,
-						Anchor:      n.Anchor,
-						Alias:       n.Alias,
-						LineComment: n.LineComment,
-						HeadComment: n.HeadComment,
-						FootComment: n.FootComment,
-					}
-					nodeCopy.Content[i] = contentCopy
-				}
-			}
-
-			seen[name] = nodeCopy
-		}
-	}
-}
-
 // getNodeName extracts the name from a YAML node.
 // It handles two cases:
 // 1. Simple scalar nodes: returns the direct value
