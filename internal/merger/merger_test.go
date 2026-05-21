@@ -1,6 +1,7 @@
 package merger
 
 import (
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -176,6 +177,56 @@ workloadAccounts:
 		require.Contains(t, err.Error(), "error parsing file1: file is empty or invalid")
 		require.Nil(t, result)
 	})
+}
+
+func TestMergeYAMLFilesWritesNothingToStdout(t *testing.T) {
+	tmpDir := t.TempDir()
+	file1 := filepath.Join(tmpDir, "file1.yaml")
+	file2 := filepath.Join(tmpDir, "file2.yaml")
+
+	if err := os.WriteFile(file1, []byte(`
+workloadAccounts:
+  - name: Network-Dev
+    email: dev@example.com
+`), 0644); err != nil {
+		t.Fatalf("failed to write file1: %v", err)
+	}
+	if err := os.WriteFile(file2, []byte(`
+workloadAccounts:
+  - name: Network-Prod
+    email: prod@example.com
+`), 0644); err != nil {
+		t.Fatalf("failed to write file2: %v", err)
+	}
+
+	oldStdout := os.Stdout
+	reader, writer, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("failed to create stdout pipe: %v", err)
+	}
+
+	os.Stdout = writer
+	result, mergeErr := MergeYAMLFiles(file1, file2, "workloadAccounts", &mockProgress{})
+	if err := writer.Close(); err != nil {
+		t.Fatalf("failed to close stdout writer: %v", err)
+	}
+	os.Stdout = oldStdout
+	defer reader.Close()
+
+	captured, readErr := io.ReadAll(reader)
+
+	if mergeErr != nil {
+		t.Fatalf("MergeYAMLFiles() returned error: %v", mergeErr)
+	}
+	if len(result) == 0 {
+		t.Fatal("MergeYAMLFiles() returned empty result")
+	}
+	if readErr != nil {
+		t.Fatalf("failed to read captured stdout: %v", readErr)
+	}
+	if len(captured) != 0 {
+		t.Fatalf("MergeYAMLFiles() wrote %q to stdout, want no stdout output", captured)
+	}
 }
 
 func TestMergeArrays(t *testing.T) {

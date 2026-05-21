@@ -13,6 +13,7 @@ var (
 	version   string
 	gitCommit string
 	buildTime string
+	quiet     bool
 )
 
 var rootCmd = &cobra.Command{
@@ -31,7 +32,7 @@ Example:
 		key := args[2]
 
 		// Create progress tracker
-		prog := progress.NewConsoleWriter(false)
+		prog := progress.NewConsoleWriter(quiet)
 
 		// Perform merge
 		result, err := merger.MergeYAMLFiles(file1, file2, key, prog)
@@ -61,5 +62,5 @@ Build Time: ` + buildTime + "\n")
 }
 
 func init() {
-	// No flags needed anymore
+	rootCmd.Flags().BoolVarP(&quiet, "quiet", "q", false, "Suppress progress output")
 }

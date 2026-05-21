@@ -113,9 +113,8 @@ func MergeYAMLFiles(file1, file2, key string, pw progress.Writer) ([]byte, error
 		return nil, fmt.Errorf("key '%s' in %s must be a sequence (list with '-' prefix), found object/mapping instead", key, file2)
 	}
 
-	// Print diagnostic information
-	fmt.Printf("Found in %s (%d items):\n", file1, len(array1.Content))
-	fmt.Printf("Found in %s (%d items):\n\n", file2, len(array2.Content))
+	pw.Step("Found in %s (%d items)", file1, len(array1.Content))
+	pw.Step("Found in %s (%d items)", file2, len(array2.Content))
 
 	// Merge the arrays
 	mergedContent := mergeArrays(array1, array2)

@@ -45,6 +45,11 @@ With quiet mode:
 yaml-merge file1.yaml file2.yaml key -q
 ```
 
+### Output streams
+
+Merged YAML is written to stdout. Progress and diagnostic output is written to
+stderr, so `yaml-merge file1.yaml file2.yaml key > merged.yaml` creates clean YAML even without `-q`.
+
 ### Arguments
 
 - `file1.yaml`: First YAML file to merge

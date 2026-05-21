@@ -21,7 +21,7 @@ type ConsoleWriter struct {
 
 func NewConsoleWriter(quiet bool) *ConsoleWriter {
 	return &ConsoleWriter{
-		writer: os.Stdout,
+		writer: os.Stderr,
 		quiet:  quiet,
 	}
 }
